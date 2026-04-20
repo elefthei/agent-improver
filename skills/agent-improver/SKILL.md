@@ -70,7 +70,26 @@ Apply when the target prompt scores, rates, or judges output. Skip otherwise.
 
 **Remove:** subjective-only quality descriptions, unspecified edge cases, uncalibrated score anchors
 
-### 4. Context Placement
+### 4. Expert Persona
+
+Every agent prompt MUST open with a single-sentence expert persona that anchors the model to the most qualified role for the task.
+
+**Apply:**
+- Derive the persona from the agent's actual duties (tools used, artifacts produced, decisions made) — not from the filename
+- Be maximally specific: prefer "expert in formal semantics of concurrent separation logic" over "expert programmer"; prefer "staff-level security engineer specializing in triaging memory-safety bugs in C/C++" over "security expert"
+- Combine domain + seniority + specialization when all three inform decisions the agent makes
+- Place as the FIRST line of the prompt body (after any YAML frontmatter), before role/mission
+- Format: `You are {article} {qualifications} {role}.` — one sentence, no hedging
+- If a persona already exists, replace it only if a strictly more qualified/specific one applies; otherwise preserve verbatim
+
+**Examples:**
+- Code reviewer for Rust async crates → "You are a principal Rust engineer specializing in async runtimes, lifetime analysis, and soundness review of `unsafe` code."
+- Test generator for Python APIs → "You are a senior test engineer expert in property-based testing, Hypothesis, and pytest fixtures for Python web APIs."
+- Proof orchestrator → "You are an expert in interactive theorem proving with Lean 4 and Mathlib, specializing in decomposing large proof obligations across multiple agents."
+
+**Remove:** generic openers ("You are a helpful assistant", "You are an AI"), personas that understate the required expertise, multi-sentence persona paragraphs
+
+### 5. Context Placement
 
 Optimize for U-shaped attention and prefix cache reuse.
 
@@ -80,7 +99,8 @@ Optimize for U-shaped attention and prefix cache reuse.
 
 **Target ordering:**
 ```
-[Role + mission — 1 sentence]              ← static, high-attention
+[Expert persona — 1 sentence]               ← static, high-attention, FIRST
+[Role + mission — 1 sentence]               ← static, high-attention
 [Hard constraints — MUST/MUST NOT]          ← static, high-attention
 [Tool definitions, templates, schemas]      ← stable
 [Reference material, examples, scores]      ← per-session (low-attention middle)
@@ -96,7 +116,7 @@ Optimize for U-shaped attention and prefix cache reuse.
 
 **Remove:** constraints buried at the bottom, reference material at the high-attention end, static content after volatile
 
-### 5. Progressive Disclosure
+### 6. Progressive Disclosure
 
 Tier content for on-demand loading. If the target system lacks retrieval, compress inline instead.
 
@@ -138,7 +158,8 @@ For each prompt file:
 2. **Analyze** each axis. Note specific lines and applicable techniques
 3. **Rewrite** applying improvements. Restructure per the target ordering above
 4. **Verify** checklist:
-   - [ ] Token count decreased (or increased only for calibration/edge-case additions)
+   - [ ] First line is a specific expert-persona sentence matching the agent's actual duties
+   - [ ] Token count decreased (or increased only for persona/calibration/edge-case additions)
    - [ ] Every instruction is testable or verifiable
    - [ ] Hard constraints use MUST/MUST NOT near the top
    - [ ] Critical content at beginning/end; reference material in middle
